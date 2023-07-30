@@ -26,6 +26,7 @@ class ExerciseActivity : AppCompatActivity() {
     private lateinit var exerciseList: ArrayList<ExerciseModel>
     private var currentExercisePosition = 0
     private var textToSpeech: TextToSpeech? = null
+    private lateinit var rvAdapter: ExerciseStatusRecyclerAdapter
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,15 +54,18 @@ class ExerciseActivity : AppCompatActivity() {
         binding?.toolbarExercise?.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
-        initExerciseStatusRecyclerView()
         exerciseList = Constants.defaultExerciseList()
+        rvAdapter = ExerciseStatusRecyclerAdapter(exerciseList)
+        initExerciseStatusRecyclerView()
         timeout()
     }
 
     private fun initExerciseStatusRecyclerView() {
         binding?.rvExerciseStatus?.apply {
-            adapter = ExerciseStatusRecyclerAdapter()
+            adapter = rvAdapter
             layoutManager = LinearLayoutManager(this@ExerciseActivity, LinearLayoutManager.HORIZONTAL, false)
+            addItemDecoration(RightSpacingItemDecoration(7))
+            isNestedScrollingEnabled = false
         }
     }
 
@@ -94,10 +98,17 @@ class ExerciseActivity : AppCompatActivity() {
             if (i == 1) function()
         }
     }
-    @SuppressLint("SetTextI18n")
+    @SuppressLint("SetTextI18n", "NotifyDataSetChanged")
     private fun timeout() {
         setTimeOutScreen()
         speakOut()
+
+        exerciseList[currentExercisePosition].setIsSelected(true)
+        Log.d("durum", "$currentExercisePosition . exercise selected: ${exerciseList[currentExercisePosition].getIsSelected()}")
+        Log.d("durum", "$currentExercisePosition . exercise completed: ${exerciseList[currentExercisePosition].getIsCompleted()}")
+
+        rvAdapter.notifyDataSetChanged()
+
         lifecycleScope.launch {
             startTimer(10, binding?.timer, binding?.progressBar) {
                 startExercises()
@@ -105,10 +116,16 @@ class ExerciseActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun startExercises() {
         setExerciseScreen()
         lifecycleScope.launch{
             startTimer(30, binding?.exercise1Timer, binding?.exercise1ProgressBar) {
+                exerciseList[currentExercisePosition].setIsCompleted(true)
+                exerciseList[currentExercisePosition].setIsSelected(false)
+                Log.d("durum", "$currentExercisePosition . exercise selected: ${exerciseList[currentExercisePosition].getIsSelected()}")
+                Log.d("durum", "$currentExercisePosition . exercise completed: ${exerciseList[currentExercisePosition].getIsCompleted()}")
+                rvAdapter.notifyDataSetChanged()
                 currentExercisePosition++
                 if(currentExercisePosition == 12) {
                     openFinishActivity()
@@ -164,42 +181,5 @@ class ExerciseActivity : AppCompatActivity() {
                 Log.d("TTS", "TTS not initialized.")
             }
         })
-    }
-
-
-
-    //redundant old functions
-    private fun startExercise1() {
-        setExerciseScreen()
-        currentExercisePosition++
-        lifecycleScope.launch {
-            startTimer(30, binding?.exercise1Timer, binding?.exercise1ProgressBar) {
-                timeout()
-            }
-        }
-    }
-    private fun startOtherExercises() {
-        binding?.flProgressBar?.visibility = View.INVISIBLE
-        binding?.tvUpcomingExercise?.visibility = View.INVISIBLE
-        binding?.tvExerciseName?.visibility = View.VISIBLE
-        binding?.flExercise1ProgressBar?.visibility = View.VISIBLE
-        binding?.exerciseImage?.visibility = View.VISIBLE
-        if (currentExercisePosition <= 11) {
-            binding?.exerciseImage?.setImageResource(exerciseList[currentExercisePosition].getImage())
-            binding?.tvExerciseName?.text = exerciseList[currentExercisePosition].getName()
-            currentExercisePosition++
-            lifecycleScope.launch {
-                startTimer(30, binding?.exercise1Timer, binding?.exercise1ProgressBar) {
-                    if (currentExercisePosition <= 11) {
-                        timeout()
-                    } else {
-                        openFinishActivity()
-                        Toast.makeText(this@ExerciseActivity,
-                            "You have completed the workout, congrats!",
-                            Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
     }
 }

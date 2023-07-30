@@ -149,6 +149,8 @@
             android:id="@+id/rv_exercise_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            tools:listitem="@layout/layout_exercise_status_item"
+            tools:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
