@@ -13,5 +13,4 @@
     android:layout_margin="1dp"
     xmlns:tools="http://schemas.android.com/tools"
     tools:text="1">
-
 </TextView>

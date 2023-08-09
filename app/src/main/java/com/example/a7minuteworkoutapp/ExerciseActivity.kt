@@ -1,6 +1,7 @@
 package com.example.a7minuteworkoutapp
 
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.content.Intent
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -9,16 +10,27 @@ import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import android.window.OnBackInvokedDispatcher
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.LayoutManager
+import com.example.a7minuteworkoutapp.HistoryData.WorkoutApp
+import com.example.a7minuteworkoutapp.HistoryData.WorkoutDao
+import com.example.a7minuteworkoutapp.HistoryData.WorkoutEntity
 import com.example.a7minuteworkoutapp.databinding.ActivityExerciseBinding
+import com.example.a7minuteworkoutapp.databinding.DialogBackButtonBinding
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.DateFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class ExerciseActivity : AppCompatActivity() {
@@ -34,6 +46,7 @@ class ExerciseActivity : AppCompatActivity() {
         binding = ActivityExerciseBinding.inflate(layoutInflater)
         setContentView(binding?.root)
 
+        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
         textToSpeech = TextToSpeech(this, TextToSpeech.OnInitListener {
             status ->
             if(status == TextToSpeech.SUCCESS) {
@@ -52,7 +65,8 @@ class ExerciseActivity : AppCompatActivity() {
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
         }
         binding?.toolbarExercise?.setNavigationOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
+            showCustomBackDialog()
+            //onBackPressedDispatcher.onBackPressed()
         }
         exerciseList = Constants.defaultExerciseList()
         rvAdapter = ExerciseStatusRecyclerAdapter(exerciseList)
@@ -88,7 +102,7 @@ class ExerciseActivity : AppCompatActivity() {
         binding?.tvExerciseName?.text = exerciseList[currentExercisePosition].getName()
     }
     private suspend fun startTimer(totalTime: Int, timer: TextView?, progressBar: ProgressBar?, function: () -> Unit) {
-        val countdownInterval: Long = 100
+        val countdownInterval: Long = 10
         for (i in totalTime downTo 1) {
             withContext(Dispatchers.Main.immediate) {
                 timer?.text = i.toString()
@@ -129,6 +143,9 @@ class ExerciseActivity : AppCompatActivity() {
                 currentExercisePosition++
                 if(currentExercisePosition == 12) {
                     openFinishActivity()
+                    lifecycleScope.launch {
+                        addRecordToWorkoutHistoryDatabase()
+                    }
                     Toast.makeText(this@ExerciseActivity,
                         "You have completed the workout, congrats!",
                         Toast.LENGTH_SHORT).show()
@@ -139,12 +156,30 @@ class ExerciseActivity : AppCompatActivity() {
             }
         }
     }
+
+    @SuppressLint("SimpleDateFormat")
+    private suspend fun addRecordToWorkoutHistoryDatabase() {
+        val workoutDao = (application as WorkoutApp).database?.workoutDao()
+        val dateFormat = SimpleDateFormat("dd/MMM/yyyy HH:mm:ss", Locale.getDefault())
+        val currentDate = Date()
+        val dateString = dateFormat.format(currentDate)
+        val date = dateString.split(" ")[0]
+        val time = dateString.split(" ")[1]
+        Log.d("Datetime", date)
+        Log.d("Datetime", time)
+
+        val workoutCount = workoutDao?.getWorkoutCount() ?: 0
+        val workoutEntity = WorkoutEntity(id = workoutCount + 1, date = date, timeStamp = time)
+        workoutDao?.addWorkout(workoutEntity)
+    }
+
+
     private fun speakOut() {
         val text = exerciseList[currentExercisePosition].getName()
         textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
     }
     private fun openFinishActivity() {
-        val intent = Intent(this, MainActivity::class.java)
+        val intent = Intent(this, FinishActivity::class.java)
         startActivity(intent)
         finish()
     }
@@ -181,5 +216,25 @@ class ExerciseActivity : AppCompatActivity() {
                 Log.d("TTS", "TTS not initialized.")
             }
         })
+    }
+    private fun showCustomBackDialog() {
+        val backDialog = Dialog(this)
+        val dialogBinding = DialogBackButtonBinding.inflate(layoutInflater)
+        backDialog.setContentView(dialogBinding.root)
+        backDialog.setCanceledOnTouchOutside(true)
+        dialogBinding.yesButton.setOnClickListener {
+            this@ExerciseActivity.finish()
+            backDialog.dismiss()
+        }
+        dialogBinding.noButton.setOnClickListener {
+            backDialog.dismiss()
+        }
+        backDialog.show()
+    }
+
+    private val onBackPressedCallback: OnBackPressedCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            showCustomBackDialog()
+        }
     }
 }

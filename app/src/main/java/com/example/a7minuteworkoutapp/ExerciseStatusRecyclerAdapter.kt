@@ -1,5 +1,6 @@
 package com.example.a7minuteworkoutapp
 
+import android.graphics.Color
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -29,11 +30,12 @@ class ExerciseStatusRecyclerAdapter(private var list: ArrayList<ExerciseModel>):
         when {
             exercise.getIsSelected() -> {
                 holder.tvItem.background = ContextCompat.getDrawable(holder.itemView.context,
-                    R.drawable.circular_color_accent_border)
+                    R.drawable.circular_color_accent_border_for_rv)
             }
             exercise.getIsCompleted() -> {
                 holder.tvItem.background = ContextCompat.getDrawable(holder.itemView.context,
                     R.drawable.item_circular_color_primary_background)
+                holder.tvItem.setTextColor(Color.WHITE)
             }
             else -> {
                 holder.tvItem.background = ContextCompat.getDrawable(holder.itemView.context,

@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import androidx.databinding.DataBindingUtil
+import com.example.a7minuteworkoutapp.HistoryData.WorkoutApp
 import com.example.a7minuteworkoutapp.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -19,6 +20,13 @@ class MainActivity : AppCompatActivity() {
         binding?.startButton?.setOnClickListener {
             playSound()
             val intent = Intent(this, ExerciseActivity::class.java)
+            startActivity(intent)
+        }
+
+        val workoutDao = (application as WorkoutApp).database?.workoutDao()
+
+        binding?.flHistory?.setOnClickListener{
+            val intent = Intent(this, HistoryActivity::class.java)
             startActivity(intent)
         }
 
